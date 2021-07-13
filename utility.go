@@ -4,11 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 )
 
 type Download struct{
-url string
+Url string
 targetPath string
 totalConnections int 
 
@@ -22,7 +23,7 @@ func (d Download) Do() error{
 	}
 	resp,err := http.DefaultClient.Do(r)
 	if err != nil {
-		println(err)
+		println("an error has occurred",err)
 	}
 	fmt.Println(resp.StatusCode)
 
@@ -30,14 +31,26 @@ func (d Download) Do() error{
 		println(resp.StatusCode)
 		return errors.New(fmt.Sprintf("cant process response %v",resp.StatusCode))
 	}
-	resp.Header.Get("Content-Length")
+
+	size,err := strconv.Atoi(resp.Header.Get("Content-Length"))
+	fmt.Printf("size is %v bytes \n",size)
+
+
+	//fmt.Println( size)
+	if err != nil {
+		fmt.Println(err)
+	}
+	//fmt.Printf(string(size))
+	//fmt.Printf("size is %v bytes",size)
+
+
 	return nil
 }
 
-func (d Download) makeRequest(method string) (*http.Request,error)  {
+func (d Download) makeRequest(method string) (*http.Request, error)  {
 	r,err := http.NewRequest(
 		method,
-		d.url,
+		d.Url,
 		nil,
 		)
 	if err != nil{
@@ -51,12 +64,16 @@ func (d Download) makeRequest(method string) (*http.Request,error)  {
 func main(){
 	fmt.Println("snag a file downloader")
 	start := time.Now()
+	fmt.Println(start)
 	d := Download{
-		url : "https://drive.google.com/file/d/1W77cE-XINukX156f2AA7yHdEDCdavble/view"
-		targetPath: "zoom.mp4",
+		Url : "https://github.com/brentshierk/kvf/archive/refs/heads/master.zip",
+		targetPath: "zoom-test.zip",
 		totalConnections: 10,
 	}
 	err := d.Do()
+	if err != nil {
+		print(err)
+	}
 
 
 }
