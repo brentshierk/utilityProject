@@ -34,14 +34,36 @@ func (d Download) Do() error{
 
 	size,err := strconv.Atoi(resp.Header.Get("Content-Length"))
 	fmt.Printf("size is %v bytes \n",size)
-
-
-	//fmt.Println( size)
 	if err != nil {
 		fmt.Println(err)
 	}
-	//fmt.Printf(string(size))
-	//fmt.Printf("size is %v bytes",size)
+
+	//creating a 2d array
+	var connections = make([][2]int,d.totalConnections)
+	//spliting the original file into smaller chunks for the workers to handle
+	fileChunks := size/d.totalConnections
+	fmt.Printf("each chunk is %v bytes\n",fileChunks)
+	fmt.Println(connections)
+
+	//algorithim to make sure each section is starting at a new file byte
+	for i := range connections{
+		if i ==0{
+			//starting byte of first worker
+			connections[i][0] = 0
+		}else {
+			connections[i][0] = connections[-i][1] + 1
+		}
+
+		if i < d.totalConnections-1{
+			//ending byte of each worker
+			connections[i][1] = connections[i][0] + fileChunks
+		}else{
+			connections[i][1] = size -1
+		}
+	}
+
+
+
 
 
 	return nil
