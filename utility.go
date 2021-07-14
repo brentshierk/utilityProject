@@ -43,15 +43,15 @@ func (d Download) Do() error{
 	//spliting the original file into smaller chunks for the workers to handle
 	fileChunks := size/d.totalConnections
 	fmt.Printf("each chunk is %v bytes\n",fileChunks)
-	fmt.Println(connections)
 
-	//algorithim to make sure each section is starting at a new file byte
+
+	//algorithm to make sure each section is starting at a new file byte
 	for i := range connections{
 		if i ==0{
 			//starting byte of first worker
 			connections[i][0] = 0
 		}else {
-			connections[i][0] = connections[-i][1] + 1
+			connections[i][0] = connections[i-1][1] + 1
 		}
 
 		if i < d.totalConnections-1{
