@@ -66,7 +66,7 @@ func main(){
 	start := time.Now()
 	fmt.Println(start)
 	d := Download{
-		Url : "https://github.com/brentshierk/kvf/archive/refs/heads/master.zip",
+		Url : "https://raw.githubusercontent.com/brentshierk/Portfolio/master/src/router/index.js",
 		targetPath: "zoom-test.zip",
 		totalConnections: 10,
 	}
