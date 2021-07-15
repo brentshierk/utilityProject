@@ -1,0 +1,6 @@
+me: "about" */ "../views/About.vue")
+  }
+];
+
+const router = new VueRouter({
+  mode

@@ -78,7 +78,11 @@ func (d Download) Do() error{
 		}(i,c)
 	}
 	waitgroup.Wait()
-	return d.mergeFileChunks(fileChunks)
+	err = d.mergeFileChunks(connections)
+	if err != nil {
+		return err
+	}
+	return d.mergeFileChunks(connections)
 }
 
 func (d Download) makeRequest(method string) (*http.Request, error)  {
@@ -112,7 +116,7 @@ func (d Download) downloadChunks(i int, c [2]int) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(fmt.Sprintf("connection-%v",i),b,os.ModePerm)
+	err = ioutil.WriteFile(fmt.Sprintf("fileChunk-%v.tmp",i),b,os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -120,7 +124,28 @@ func (d Download) downloadChunks(i int, c [2]int) error {
 	return nil
 }
 
-func (d Download) mergeFileChunks(chunks int) error {
+func (d Download) mergeFileChunks(fileChunks [][2]int) error {
+	f,err := os.OpenFile(d.targetPath,os.O_CREATE|os.O_WRONLY|os.O_APPEND,os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+
+		}
+	}(f)
+	for i := range fileChunks{
+		b,err := ioutil.ReadFile(fmt.Sprintf("fileChunk-%v.tmp",i))
+		if err != nil {
+			return err
+		}
+		n,err := f.Write(b)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%v bytes merged\n",n)
+	}
 	return nil
 }
 
@@ -131,7 +156,7 @@ func main(){
 	fmt.Println(start)
 	d := Download{
 		Url : "https://raw.githubusercontent.com/brentshierk/Portfolio/master/src/router/index.js",
-		targetPath: "zoom-test.zip",
+		targetPath: "index.js",
 		totalConnections: 10,
 	}
 	err := d.Do()
