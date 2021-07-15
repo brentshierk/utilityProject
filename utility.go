@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -93,6 +95,28 @@ func (d Download) makeRequest(method string) (*http.Request, error)  {
 }
 
 func (d Download) downloadChunks(i int, c [2]int) error {
+	r,err := d.makeRequest("GET")
+	if err != nil {
+		return err
+	}
+	r.Header.Set("Range",fmt.Sprintf("bytes=%v-%v",c[0],c[1]))
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode >299{
+		return errors.New(fmt.Sprintf("error! response is %v",resp.StatusCode))
+	}
+	fmt.Printf("downloaded %v bytes for section %v \n",resp.Header.Get("Content-Length"),i)
+	b,err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(fmt.Sprintf("connection-%v",i),b,os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
