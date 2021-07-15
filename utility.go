@@ -3,15 +3,17 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 )
 
 type Download struct{
 Url string
 targetPath string
-totalConnections int 
+totalConnections int
 
 }
 
@@ -40,7 +42,7 @@ func (d Download) Do() error{
 
 	//creating a 2d array
 	var connections = make([][2]int,d.totalConnections)
-	//spliting the original file into smaller chunks for the workers to handle
+	//splitting the original file into smaller chunks for the workers to handle
 	fileChunks := size/d.totalConnections
 	fmt.Printf("each chunk is %v bytes\n",fileChunks)
 
@@ -61,12 +63,20 @@ func (d Download) Do() error{
 			connections[i][1] = size -1
 		}
 	}
-
-
-
-
-
-	return nil
+	log.Println(connections)
+	//using concurrency to download each section of the file
+	// implementation of waitgroup https://tutorialedge.net/golang/go-waitgroup-tutorial/
+	var waitgroup sync.WaitGroup
+	for i,c := range connections{
+		waitgroup.Add(1)
+		//starting go routine
+		go func(i int,c [2]int) {
+			defer waitgroup.Done()
+			err = d.downloadChunks(i,c)
+		}(i,c)
+	}
+	waitgroup.Wait()
+	return d.mergeFileChunks(fileChunks)
 }
 
 func (d Download) makeRequest(method string) (*http.Request, error)  {
@@ -80,6 +90,14 @@ func (d Download) makeRequest(method string) (*http.Request, error)  {
 	}
 	r.Header.Set("User-Agent","snag a file")
 	return r,nil
+}
+
+func (d Download) downloadChunks(i int, c [2]int) error {
+	return nil
+}
+
+func (d Download) mergeFileChunks(chunks int) error {
+	return nil
 }
 
 
