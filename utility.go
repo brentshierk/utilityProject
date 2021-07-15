@@ -19,6 +19,8 @@ totalConnections int
 
 }
 
+// Do func, makes a HEAD request to host server, the response is is the header where we can find the content-length(bytes)
+//with the bytes we are then able to
 func (d Download) Do() error{
 	fmt.Println("making connection")
 	r,err := d.makeRequest("HEAD")
@@ -44,12 +46,13 @@ func (d Download) Do() error{
 
 	//creating a 2d array
 	var connections = make([][2]int,d.totalConnections)
-	//splitting the original file into smaller chunks for the workers to handle
+	//splitting the original file into smaller chunks to make use of bandwidth thus potentially giving us faster download times
+	// as the process is split amongst multiple threads
 	fileChunks := size/d.totalConnections
 	fmt.Printf("each chunk is %v bytes\n",fileChunks)
 
 
-	//algorithm to make sure each section is starting at a new file byte
+	//algorithm to make sure each section is starting at a new byte
 	for i := range connections{
 		if i ==0{
 			//starting byte of first worker
@@ -84,7 +87,7 @@ func (d Download) Do() error{
 	}
 	return d.mergeFileChunks(connections)
 }
-
+//helper function
 func (d Download) makeRequest(method string) (*http.Request, error)  {
 	r,err := http.NewRequest(
 		method,
@@ -97,7 +100,7 @@ func (d Download) makeRequest(method string) (*http.Request, error)  {
 	r.Header.Set("User-Agent","snag a file")
 	return r,nil
 }
-
+//download the file chunks into separate tmp files
 func (d Download) downloadChunks(i int, c [2]int) error {
 	r,err := d.makeRequest("GET")
 	if err != nil {
@@ -123,7 +126,7 @@ func (d Download) downloadChunks(i int, c [2]int) error {
 
 	return nil
 }
-
+//this function merges all of the separate file chunks into a single file.
 func (d Download) mergeFileChunks(fileChunks [][2]int) error {
 	f,err := os.OpenFile(d.targetPath,os.O_CREATE|os.O_WRONLY|os.O_APPEND,os.ModePerm)
 	if err != nil {
@@ -135,6 +138,7 @@ func (d Download) mergeFileChunks(fileChunks [][2]int) error {
 
 		}
 	}(f)
+	//iterate over the filechunks and write to file
 	for i := range fileChunks{
 		b,err := ioutil.ReadFile(fmt.Sprintf("fileChunk-%v.tmp",i))
 		if err != nil {
