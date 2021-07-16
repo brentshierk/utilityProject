@@ -1,35 +1,41 @@
-FROM golang:alpine AS builder
+FROM golang:1.16-alpine AS build
 
-# Set necessary environmet variables needed for our image
-ENV GO111MODULE=on \
-    CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64
+# Optionally set HUGO_BUILD_TAGS to "extended" or "nodeploy" when building like so:
+#   docker build --build-arg HUGO_BUILD_TAGS=extended .
+ARG HUGO_BUILD_TAGS
 
-# Move to working directory /build
-WORKDIR /build
+ARG CGO=1
+ENV CGO_ENABLED=${CGO}
+ENV GOOS=linux
+ENV GO111MODULE=on
 
-# Copy and download dependency using go mod
-COPY go.mod .
-COPY go.sum .
-RUN go mod download
+WORKDIR /go/src/github.com/gohugoio/hugo
 
-# Copy the code into the container
-COPY . .
+COPY . /go/src/github.com/gohugoio/hugo/
 
-# Build the application
-RUN go build -o main .
+# gcc/g++ are required to build SASS libraries for extended version
+RUN apk update && \
+    apk add --no-cache gcc g++ musl-dev && \
 
-# Move to /dist directory as the place for resulting binary folder
-WORKDIR /dist
 
-# Copy binary from build to main folder
-RUN cp /build/main .
+RUN  hugo
 
-# Build a small image
-FROM scratch
+# ---
 
-COPY --from=builder /dist/main /
+FROM alpine:3.12
 
-# Command to run
-ENTRYPOINT ["/main"]
+COPY --from=build /go/bin/hugo /usr/bin/hugo
+
+# libc6-compat & libstdc++ are required for extended SASS libraries
+# ca-certificates are required to fetch outside resources (like Twitter oEmbeds)
+RUN apk update && \
+    apk add --no-cache ca-certificates libc6-compat libstdc++ git
+
+VOLUME /site
+WORKDIR /site
+
+# Expose port for live server
+EXPOSE 1313
+
+ENTRYPOINT ["hugo"]
+CMD ["--help"]
