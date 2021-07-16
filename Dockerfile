@@ -1,41 +1,28 @@
 FROM golang:1.16-alpine AS build
 
-# Optionally set HUGO_BUILD_TAGS to "extended" or "nodeploy" when building like so:
-#   docker build --build-arg HUGO_BUILD_TAGS=extended .
-ARG HUGO_BUILD_TAGS
+# config
+ENV HUGO_VERSION=0.83.1
+#ENV HUGO_TYPE=
+ENV HUGO_TYPE=_extended
 
-ARG CGO=1
-ENV CGO_ENABLED=${CGO}
-ENV GOOS=linux
-ENV GO111MODULE=on
+COPY ./run.sh /run.sh
+ENV HUGO_ID=hugo${HUGO_TYPE}_${HUGO_VERSION}
+RUN wget -O - https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/${HUGO_ID}_Linux-64bit.tar.gz | tar -xz -C /tmp \
+    && mkdir -p /usr/local/sbin \
+    && mv /tmp/hugo /usr/local/sbin/hugo \
+    && rm -rf /tmp/${HUGO_ID}_linux_amd64 \
+    && rm -rf /tmp/LICENSE.md \
+    && rm -rf /tmp/README.md
 
-WORKDIR /go/src/github.com/gohugoio/hugo
+RUN apk add --update git asciidoctor libc6-compat libstdc++ \
+    && apk upgrade \
+    && apk add --no-cache ca-certificates \
+    && chmod 0777 /run.sh
 
-COPY . /go/src/github.com/gohugoio/hugo/
+VOLUME /src
+VOLUME /output
 
-# gcc/g++ are required to build SASS libraries for extended version
-RUN apk update && \
-    apk add --no-cache gcc g++ musl-dev && \
+WORKDIR /src
+CMD ["/run.sh"]
 
-
-RUN  hugo
-
-# ---
-
-FROM alpine:3.12
-
-COPY --from=build /go/bin/hugo /usr/bin/hugo
-
-# libc6-compat & libstdc++ are required for extended SASS libraries
-# ca-certificates are required to fetch outside resources (like Twitter oEmbeds)
-RUN apk update && \
-    apk add --no-cache ca-certificates libc6-compat libstdc++ git
-
-VOLUME /site
-WORKDIR /site
-
-# Expose port for live server
 EXPOSE 1313
-
-ENTRYPOINT ["hugo"]
-CMD ["--help"]
