@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
 )
 
 type Download struct{
@@ -17,6 +19,18 @@ Url string
 targetPath string
 totalConnections int
 
+}
+func server() {
+	r := gin.Default()
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
+	err := r.Run(":3000")
+	if err != nil {
+		return
+	}
 }
 
 // Do func, makes a HEAD request to host server, the response is is the header where we can find the content-length(bytes)
@@ -155,6 +169,7 @@ func (d Download) mergeFileChunks(fileChunks [][2]int) error {
 
 
 func main(){
+
 	fmt.Println("snag a file downloader")
 	start := time.Now()
 	fmt.Println(start)
@@ -167,6 +182,6 @@ func main(){
 	if err != nil {
 		print(err)
 	}
-
+	server()
 
 }
